@@ -28,20 +28,30 @@ function App() {
   const [error, setError] = useState('');
   const [rateLimits, setRateLimits] = useState(null);
 
-  const payload = useMemo(() => ({
-    ...filters,
-    offset,
-    api_key: apiKey || undefined,
-    api_host: apiHost || undefined,
-  }), [filters, offset, apiKey, apiHost]);
+  // Derive provider from host
+  const provider = apiHost?.includes('active-jobs-db.p.rapidapi.com') ? 'active' : 'fantastic';
+
+  const payload = useMemo(() => {
+    const base = {
+      ...filters,
+      offset,
+      api_key: apiKey || undefined,
+      api_host: apiHost || undefined,
+    };
+    // Ensure Active Jobs DB always receives a valid description_type (text)
+    if (provider === 'active') {
+      base.description_type = 'text';
+      // Clamp limit client-side for Active (10-100)
+      const lim = Number(base.limit) || 100;
+      base.limit = Math.min(100, Math.max(10, lim));
+    }
+    return base;
+  }, [filters, offset, apiKey, apiHost, provider]);
 
   const runSearch = async (incoming) => {
     setOffset(0);
     setFilters((s) => ({ ...s, ...incoming }));
   };
-
-  // Derive provider from host
-  const provider = apiHost?.includes('active-jobs-db.p.rapidapi.com') ? 'active' : 'fantastic';
 
   useEffect(() => {
     const shouldFetch = Boolean(apiKey) && Boolean(apiHost);
@@ -97,9 +107,9 @@ function App() {
       <Pagination offset={offset} setOffset={setOffset} limit={filters.limit || 20} hasMore={hasMore} />
       <footer className="max-w-6xl mx-auto px-4 py-10 text-xs text-gray-500">
         {provider === 'active' ? (
-          <span>Using Active Jobs DB: Showing modified jobs in the last 24 hours. Only limit, offset, and description type are applied.</span>
+          <span>Using Active Jobs DB: Modified in the last 24 hours. Supported filters include title, location, limit (10-100), offset, and description_type is set to text by default.</span>
         ) : (
-          <span>Using Fantastic.jobs: Filters like title, location, remote, and time window apply.</span>
+          <span>Using Fantastic.jobs: Filters like title, location, remote, source, and time window apply.</span>
         )}
       </footer>
     </div>
