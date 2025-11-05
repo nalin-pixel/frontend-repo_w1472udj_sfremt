@@ -18,7 +18,7 @@ function App() {
     source: '',
     remote: '',
     include_ai: true,
-    time_window: '7d',
+    time_window: '24h',
     limit: 20,
   });
 
@@ -40,7 +40,17 @@ function App() {
     setFilters((s) => ({ ...s, ...incoming }));
   };
 
+  // Derive provider from host
+  const provider = apiHost?.includes('active-jobs-db.p.rapidapi.com') ? 'active' : 'fantastic';
+
   useEffect(() => {
+    const shouldFetch = Boolean(apiKey) && Boolean(apiHost);
+    if (!shouldFetch) {
+      setJobs([]);
+      setError('');
+      return;
+    }
+
     const fetchJobs = async () => {
       setLoading(true);
       setError('');
@@ -61,20 +71,36 @@ function App() {
         setLoading(false);
       }
     };
+
     fetchJobs();
-  }, [payload]);
+  }, [payload, apiKey, apiHost]);
 
   const hasMore = jobs.length >= (filters.limit || 20); // optimistic
 
   return (
     <div className="min-h-screen bg-gray-50">
       <HeaderBar />
-      <ApiKeyBar apiKey={apiKey} setApiKey={setApiKey} apiHost={apiHost} setApiHost={setApiHost} />
-      <SearchFilters initial={filters} onSearch={runSearch} loading={loading} />
+      <ApiKeyBar
+        apiKey={apiKey}
+        setApiKey={setApiKey}
+        apiHost={apiHost}
+        setApiHost={setApiHost}
+        provider={provider}
+      />
+      <SearchFilters
+        initial={filters}
+        onSearch={runSearch}
+        loading={loading}
+        provider={provider}
+      />
       <JobsList jobs={jobs} loading={loading} error={error} rateLimits={rateLimits} />
       <Pagination offset={offset} setOffset={setOffset} limit={filters.limit || 20} hasMore={hasMore} />
       <footer className="max-w-6xl mx-auto px-4 py-10 text-xs text-gray-500">
-        Data from employer career sites & ATS. Paste your API key above to fetch live jobs.
+        {provider === 'active' ? (
+          <span>Using Active Jobs DB: Showing modified jobs in the last 24 hours. Only limit, offset, and description type are applied.</span>
+        ) : (
+          <span>Using Fantastic.jobs: Filters like title, location, remote, and time window apply.</span>
+        )}
       </footer>
     </div>
   );
