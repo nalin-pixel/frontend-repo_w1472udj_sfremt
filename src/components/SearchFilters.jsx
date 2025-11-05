@@ -116,7 +116,7 @@ export default function SearchFilters({ initial, onSearch, loading, provider }) 
             type="number"
             name="limit"
             min={10}
-            max={provider === 'active' ? 500 : 100}
+            max={provider === 'active' ? 100 : 500}
             value={form.limit}
             onChange={handleChange}
             className="w-full rounded-lg border px-3 py-2 text-sm"
